@@ -6,16 +6,19 @@ export const protectRoute = async (req, res, next) => {
     const token = req.cookies.jwt;
 
     if (!token) {
-      return res.status(401).json({ message: "Unauthorized - No token provided" });
+      return res
+        .status(401)
+        .json({ message: "Unauthorized - No token provided" });
     }
 
     const decoded = jwt.verify(token, process.env.JWT_SECRET);
 
-    if (!decoded || !decoded.userId) {
+    // token payload uses { id: <userId> } (see generateToken)
+    if (!decoded || !decoded.id) {
       return res.status(401).json({ message: "Unauthorized - Invalid token" });
     }
 
-    const user = await User.findById(decoded.userId).select("-password");
+    const user = await User.findById(decoded.id).select("-password");
 
     if (!user) {
       return res.status(401).json({ message: "Unauthorized - User not found" });
@@ -25,6 +28,8 @@ export const protectRoute = async (req, res, next) => {
     next();
   } catch (error) {
     console.log("Error in protective middleware:", error.message);
-    return res.status(401).json({ message: "Unauthorized - Token verification failed" });
+    return res
+      .status(401)
+      .json({ message: "Unauthorized - Token verification failed" });
   }
 };
