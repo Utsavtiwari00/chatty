@@ -11,6 +11,20 @@ import { fileURLToPath } from "url";
 
 dotenv.config();
 
+// Validate required environment variables
+const requiredEnvVars = ["JWT_SECRET", "FRONTEND_ORIGIN"];
+const missingEnvVars = requiredEnvVars.filter((envVar) => !process.env[envVar]);
+if (missingEnvVars.length > 0) {
+  console.error(
+    "Error: Missing required environment variables:",
+    missingEnvVars
+  );
+  console.error(
+    "Please set these variables in your .env file or deployment platform (Render)"
+  );
+  process.exit(1);
+}
+
 // Use platform port or fallback for local dev
 const PORT = process.env.PORT || 5000;
 
@@ -18,11 +32,14 @@ const PORT = process.env.PORT || 5000;
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 
+// Trust proxy - required for secure cookies behind Render's proxy
+app.set("trust proxy", 1);
+
 // ------- CORS -------
 const allowedOrigins = [
-  "http://localhost:5173",              // Vite dev
-  "http://localhost:3000",              // Next dev (if you ever use it)
-  process.env.FRONTEND_ORIGIN,          // e.g. https://chatty-xi-two.vercel.app
+  "http://localhost:5173", // Vite dev
+  "http://localhost:3000", // Next dev (if you ever use it)
+  process.env.FRONTEND_ORIGIN, // e.g. https://chatty-xi-two.vercel.app
 ].filter(Boolean);
 
 app.use(
@@ -51,7 +68,10 @@ app.use("/api/messages", messageRoutes);
 
 // Serve frontend only if you intentionally build+ship it with the backend
 // (On Render, you typically DON'T — Vercel serves the frontend.)
-if (process.env.NODE_ENV === "production" && process.env.SERVE_FRONTEND === "true") {
+if (
+  process.env.NODE_ENV === "production" &&
+  process.env.SERVE_FRONTEND === "true"
+) {
   const frontendPath = path.join(__dirname, "../../frontend/dist");
   app.use(express.static(frontendPath));
   app.get("*", (_req, res) => {
